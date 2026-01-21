@@ -1,0 +1,103 @@
+//this code is no longer functionally active at the org it was used for
+// it is here as an example of the progress of my coding journey
+// and for reference and use in later projects
+// last updated: 11/1/2024
+// archived: 1/21/2026
+
+// config input variables
+let inputConfig = input.config();
+
+// encode agent email to add to end of API call URL
+let agentEmail = encodeURIComponent(inputConfig.emailField);
+
+// add record URL to an array for proper API syntax
+let linkArray = [inputConfig.recordUrl]
+
+// add encoded agent email to end of API url
+let apiUrlWithEmail = 'https://api2.frontapp.com/contacts/alt%3Aemail%3A' + agentEmail
+
+
+// run variables through a function to check for null values and replace with empty strings so as not to upset the API
+function ifNull(varToNullCheck) {
+  if (varToNullCheck === null) {return ""} else {return varToNullCheck}
+}
+
+// LOGIC TO ADD: does contact exist? if yes, update, if no, create
+
+// set API call options, running each custom contact field value through the ifNull function
+const options = {
+  method: 'PATCH',
+  headers: {
+    'content-type': 'application/json', 
+    authorization: 'Bearer  REDACTED'
+    },
+  body: JSON.stringify({
+    custom_fields: {
+      'Agency / Business Name': ifNull(inputConfig.agencyBusinessName.toString()), 
+      'Nickname':  ifNull(inputConfig.nicknameField), 
+      'VIP': ifNull(inputConfig.isVIP), 
+      'Onboarding Status': ifNull(inputConfig.onboardStatus), 
+      '1 From Top Agency': ifNull(inputConfig.oneFromTop), 
+      'Agency Principal Y/N': ifNull(inputConfig.agencyPrincipalYesNo).toString(), 
+      'Ready to Sell Carriers': ifNull(inputConfig.readyToSellCarriers.join(", ")),
+      'Contracting Lead': ifNull(inputConfig.contractingLead),
+      },
+    name: inputConfig.nameField,
+    links: linkArray,
+  })
+};
+
+// define function: send API call to update contact
+async function fetchSendEmail(x,y) {
+  try {
+      const response = await fetch(
+        x, y
+        )
+      const emailData = await response.json();
+      return emailData;
+  } catch (error) {
+      console.error(error);
+  }
+}
+
+let response = await fetch(apiUrlWithEmail, options);
+console.log(options)
+console.log(response)
+/*
+// Call the function and handle the result with .then()
+let response = await fetchSendEmail(apiUrlWithEmail, options)
+
+console.log(response)
+/*
+bearer code REDACTED
+
+let url = "https://hooks.zapier.com/hooks/catch/15272334/3m6n5fq/"
+
+url = url + "?name=" + urlName + "&email=" + urlEmail 
++ "&nickname=" + urlNickname + "&onefromtop=" + urlOneFromTop + "&agencyname=" 
++ urlAgencyBusinessName + "&principal=" + urlAgencyPrincipal + "&onbstatus=" + urlOnboardStatus 
++ "&sgmemail=" + urlSgmEmail + "&VIP=" + urlIsVip + "&recordId=" + urlRecordId + "&contractingone=" 
++ urlContractingOne + "&contractingtwo=" + urlContractingTwo
+
+
+function getOrDefault(input) {
+  return input || "";
+}
+
+const result = inputConfig.agencyPrincipalYesNo ? 'Yes' : 'No';
+
+let urlName = encodeURIComponent(inputConfig.nameField);
+let urlEmail = encodeURIComponent(inputConfig.emailField);
+let urlNickname = encodeURIComponent(getOrDefault(inputConfig.nicknameField));
+let urlOneFromTop = encodeURIComponent(inputConfig.oneFromTop);
+let urlAgencyBusinessName = encodeURIComponent(getOrDefault(inputConfig.agencyBusinessName.toString()));
+let urlAgencyPrincipal = encodeURIComponent(getOrDefault(result));
+let urlOnboardStatus = encodeURIComponent(inputConfig.onboardStatus);
+let urlSgmEmail = encodeURIComponent(getOrDefault(inputConfig.sgmEmail));
+let urlIsVip = encodeURIComponent(getOrDefault(inputConfig.isVIP));
+let urlRecordId = encodeURIComponent(inputConfig.recordId)
+let urlContractingOne = encodeURIComponent(getOrDefault(inputConfig.contractingOne));
+let urlContractingTwo = encodeURIComponent(getOrDefault(inputConfig.contractingTwo));
+
+if (inputConfig.emailField) { fetch(url); console.log('sent') }
+*/
