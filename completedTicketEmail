@@ -1,6 +1,8 @@
 //this code is no longer functionally active at the org it was used for
 // it is here as an example of the progress of my coding journey
 // and for reference and use in later projects
+// last updated: 6/24/2025
+// archived: 1/21/2026
 
 let inputConfig = input.config();
 let sentByInitials = inputConfig.lastModifiedBy.split(" ").map((n)=>n[0]).join("");
