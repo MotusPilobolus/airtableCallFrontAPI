@@ -1,0 +1,127 @@
+// this code is no longer functionally active at the org it was used for
+// it is here as an example of the progress of my coding journey
+// and for reference and use in later projects
+// last updated: 4/26/2024
+// archived: 1/21/2026
+
+let inputConfig = input.config();
+let sentByInitials = inputConfig.lastModifiedBy.split(" ").map((n)=>n[0]).join("");
+let taskType = ''
+let emailBody = ''
+let options = {}
+let obj, communicationsLog;
+if (inputConfig.communicationsLog == null) {communicationsLog = ''} else {communicationsLog = inputConfig.communicationsLog}
+let noteDate = new Date();
+let newNote = `\n ${noteDate.toLocaleDateString('en-US', {year:'2-digit', month:'2-digit', day:'2-digit'})} (${sentByInitials}) - `
+let dueDate = noteDate
+
+//set due date for follow up
+for (let i = 1; i <= 2; i++) {
+  dueDate.setDate(dueDate.getDate() + 1);
+  if (dueDate.getDay() === 6) {
+    dueDate.setDate(dueDate.getDate() + 2);
+  }
+  else if (dueDate.getDay() === 0) {
+    dueDate.setDate(dueDate.getDate() + 1);
+  }
+}
+let dueDateString = dueDate.toLocaleDateString('en-US')
+
+// send api call to send email
+async function fetchSendEmail(x) {
+        try {
+            const response = await fetch(
+              'https://api2.frontapp.com/channels/cha_7tiz5/messages', x
+              )
+            const emailData = await response.json();
+            return emailData;
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+
+// map senderID to task owner email 
+function findSenderId(x, y) {
+  for (let i = 0; i < x.length; i++) {
+    // Check if the email matches the taskOwnerEmail (y)
+    if (x[i].email === y) {
+      // Return the corresponding ID from array x if found
+      return x[i].id;
+    }
+  }
+  // add alert with date to log variable (returned to AT field)
+  communicationsLog += newNote +  "No task owner match found."
+  return null;
+}
+//sender IDs for API call
+let senderIDs = [ {"id":"tea_4et75","email":"byron@sparkadvisors.com"}, {"id":"tea_6kh3l","email":"kayla.prata@sparkadvisors.com"},{"id":"tea_6l429","email":"marielle@sparkadvisors.com"}, {"id":"tea_6l5ht","email":"audra.palermo@sparkadvisors.com"},{"id":"tea_6l5qp","email":"courtney@sparkadvisors.com"},{"id":"tea_6l5xt","email":"ed.villarreal@sparkadvisors.com"},{"id":"tea_6l5zl","email":"gia.moreno@sparkadvisors.com"}, {"id":"tea_6l61d","email":"jon.mullen@sparkadvisors.com"},{"id":"tea_6l635","email":"julie.feldman@sparkadvisors.com"},{"id":"tea_6l64x","email":"katya.gruhala@sparkadvisors.com"},{"id":"tea_6l66p","email":"jose.torres@sparkadvisors.com"},{"id":"tea_6l7kh","email":"sidney.wheeldon@sparkadvisors.com"},{"id":"tea_6lgb5","email":"mariah.mcafee@sparkadvisors.com"},{"id":"tea_6lgup","email":"vivian.tran@sparkadvisors.com"},{"id":"tea_6lhjl","email":"nakul.tandon@sparkadvisors.com"},{"id":"tea_6ls0h","email":"isaiah.rambert@sparkadvisors.com"},{"id":"tea_6ls29","email":"amanda.nielesky@sparkadvisors.com"},{"id":"tea_6ls41","email":"nephtali.navarro@sparkadvisors.com"},{"id":"tea_6ls5t","email":"terrence.gutierrez@sparkadvisors.com"}, {"id":"tea_6nidt","email":"jessica.schwanfelder@sparkadvisors.com"},{"id":"tea_72w7l","email":"pam.harrison@sparkadvisors.com"},{"id":"tea_72x8x","email":"cameron.mclaughlin@sparkadvisors.com"},{"id":"tea_73uhd","email":"jamie.stevens@sparkadvisors.com"},{"id":"tea_73xqp","email":"britney.cummings@sparkadvisors.com"},{"id":"tea_73xsh","email":"jaymee.friedman@sparkadvisors.com"}, ] 
+let ownerFrontID = findSenderId(senderIDs, inputConfig.taskOwnerEmail.toString());
+
+// ensure taskType null doesn't appear in email body
+if (inputConfig.ticketRequestType !== null) {taskType = ' ' + inputConfig.ticketRequestType}
+
+// Alert if there is no linked Agent Record
+if ( inputConfig.agentName.toString() == '' ) {
+  communicationsLog += newNote + 'There is no Agent attached to this task. Please check the data, and then follow up with Data Ops if necessary.'
+} 
+  else if (inputConfig.externalDetails == '' || inputConfig.externalDetails == null) {
+  // Alert if there are no External Comments to send to Agent
+    communicationsLog += newNote + 'External comments empty. Cannot send message at this time.'
+  } 
+    // Switch case based on Task Status
+    else {
+        switch (inputConfig.taskStatus) {
+
+          // Send Followup Email
+            case 'In Progress':
+            case 'Blocked ':
+            case 'To Do':
+
+            if (inputConfig.taskStatus == "To Do") {
+             await base.getTable("Tasks").updateRecordAsync(inputConfig.recordID, {
+                "Status": {name: "In Progress"}
+                });
+                }
+
+              emailBody = 'Hi ' + inputConfig.agentName
+                +`,</br></br>We have an update on your Spark Agent Support Ticket #${inputConfig.ticketNum}:</br></br>Your`
+                + taskType +' request has been updated, please reply to this email with additional information requested:</br><b>'
+                + inputConfig.externalDetails.trimEnd()
+                + '</b></br></br>Thank you!</br>' 
+                + inputConfig.taskOwner
+
+            options = {
+              method: 'POST',
+              headers: {
+                accept: 'application/json',
+                'content-type': 'application/json',
+                authorization: 'Bearer REDACTED'
+              },
+              body: JSON.stringify({
+                options: {archive: true, tag_ids: ['tag_2py5g1', 'tag_2pu6hd']},
+                to: [inputConfig.agentEmail.toString()],
+                sender_name: inputConfig.taskOwner + ' @ Spark Agent Support',
+                subject: `Your Agent Support Ticket #${inputConfig.ticketNum} with Spark [Requesting Info]`,
+                author_id: ownerFrontID,
+                body: emailBody.toString(),
+                signature_id: 'sig_5rcwh'
+              }, null, '\n')
+            };
+
+            let emailInProgressSentData = await fetchSendEmail(options);
+            communicationsLog += newNote + 'Followup email sent via Front here: https://app.frontapp.com/open/' + emailInProgressSentData.id;
+            break;
+
+            case 'Done':
+            communicationsLog += newNote + 'Error! Follow-up button pressed while task is Status: Done. If you need more information, please re-open your ticket to In Progress or Blocked.'
+            break;
+
+            default:
+            // Alert if task is not In Progress, Blocked, or Complete
+            communicationsLog += newNote + 'Alert: Something went wrong! Check your task status or reach out to KP on Slack for more info.'
+        } 
+        }
+
+    output.set("communicationsLog", communicationsLog)
+    output.set("dueDateString", dueDateString)
